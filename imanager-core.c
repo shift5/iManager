@@ -235,6 +235,7 @@ static void imanager_add_attribute(struct imanager_ec_data *ec,
 			wdt->num++;
 			break;
 		}
+		break;
 	case ADC:
 		switch (attr->did) {
 		case ADC12VS0:
@@ -278,6 +279,7 @@ static void imanager_add_attribute(struct imanager_ec_data *ec,
 			adc->num++;
 			break;
 		}
+		break;
 	case PWM:
 		switch (attr->did) {
 		case CPUFAN_2P:
@@ -312,6 +314,7 @@ static void imanager_add_attribute(struct imanager_ec_data *ec,
 			bl->num++;
 			break;
 		}
+		break;
 	case SMB:
 		switch (attr->did) {
 		case SMBEEPROM:
@@ -331,12 +334,14 @@ static void imanager_add_attribute(struct imanager_ec_data *ec,
 			i2c->num++;
 			break;
 		}
+		break;
 	case IRQ:
 		if (attr->did == WDIRQ) {
 			wdt->attr[0] = attr;
 			wdt->num++;
 			break;
 		}
+		break;
 	}
 }
 
@@ -778,50 +783,46 @@ enum imanager_cells {
  * iManager devices which are available via firmware.
  */
 
-static const struct mfd_cell imanager_devs[] = {
-	[IMANAGER_BACKLIGHT] = {
-		.name = "imanager-backlight",
-	},
-	[IMANAGER_GPIO] = {
-		.name = "imanager-gpio",
-	},
-	[IMANAGER_HWMON] = {
-		.name = "imanager-hwmon",
-	},
-	[IMANAGER_SMB] = {
-		.name = "imanager-smbus",
-	},
-	[IMANAGER_WDT] = {
-		.name = "imanager-wdt",
-	},
+static const char *imanager_dev_names[] = {
+	[IMANAGER_BACKLIGHT]	= "imanager-backlight",
+	[IMANAGER_GPIO]		= "imanager-gpio",
+	[IMANAGER_HWMON]	= "imanager-hwmon",
+	[IMANAGER_SMB]		= "imanager-smbus",
+	[IMANAGER_WDT]		= "imanager-wdt",
 };
 
 static int imanager_register_cells(struct imanager_device_data *imgr)
 {
 	struct imanager_ec_data *ec = &imgr->ec;
-	struct mfd_cell devs[ARRAY_SIZE(imanager_devs)];
+	struct mfd_cell devs[ARRAY_SIZE(imanager_dev_names)];
 	int i = 0;
 
-	if (ec->features & IMANAGER_FEATURE_BACKLIGHT)
-		devs[i++] = imanager_devs[IMANAGER_BACKLIGHT];
+	if (ec->features & IMANAGER_FEATURE_BACKLIGHT) {
+		devs[i++].name = imanager_dev_names[IMANAGER_BACKLIGHT];
+		dev_info(imgr->dev, "iManager: backlight");
+	}
 
-	if (ec->features & IMANAGER_FEATURE_GPIO)
-		devs[i++] = imanager_devs[IMANAGER_GPIO];
+	if (ec->features & IMANAGER_FEATURE_GPIO) {
+		devs[i++].name = imanager_dev_names[IMANAGER_GPIO];
+		dev_info(imgr->dev, "iManager: gpio");
+	}
 
-	if (ec->features & IMANAGER_FEATURE_HWMON_ADC)
-		devs[i++] = imanager_devs[IMANAGER_HWMON];
+	if (ec->features & IMANAGER_FEATURE_HWMON_ADC) {
+		devs[i++].name = imanager_dev_names[IMANAGER_HWMON];
+		dev_info(imgr->dev, "iManager: hwmon");
+	}
 
-	if (ec->features & IMANAGER_FEATURE_SMBUS)
-		devs[i++] = imanager_devs[IMANAGER_SMB];
+	if (ec->features & IMANAGER_FEATURE_SMBUS) {
+		devs[i++].name = imanager_dev_names[IMANAGER_SMB];
+		dev_info(imgr->dev, "iManager: smbus");
+	}
 
-	if (ec->features & IMANAGER_FEATURE_WDT)
-		devs[i++] = imanager_devs[IMANAGER_WDT];
+	if (ec->features & IMANAGER_FEATURE_WDT) {
+		devs[i++].name = imanager_dev_names[IMANAGER_WDT];
+		dev_info(imgr->dev, "iManager: wdt");
+	}
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 6, 0)
-	return mfd_add_devices(imgr->dev, -1, devs, i, NULL, 0);
-#else
-	return mfd_add_devices(imgr->dev, -1, devs, i, NULL, 0, NULL);
-#endif
+	return mfd_add_devices(imgr->dev, PLATFORM_DEVID_NONE, devs, i, NULL, 0, NULL);
 }
 
 static struct resource imanager_ioresource = {
